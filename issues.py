@@ -53,3 +53,7 @@ def edit_issue(repo: str, number: int, title: str = None, body: str = None, stat
 
 def list_issues(repo: str):
     return _request("GET", f"{API}/repos/{repo}/issues")
+
+
+def get_issue(repo: str, number: int):
+    return _request("GET", f"{API}/repos/{repo}/issues/{number}")
