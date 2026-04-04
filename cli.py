@@ -2,6 +2,7 @@
 import sys
 
 from auth import device_flow_auth
+from compact import run_compact
 from errors import DevloopError, exit_with_error
 from issues import create_issue, edit_issue, list_issues, get_issue
 from state import get_active_repo, get_state, set_active_repo, set_mode
@@ -27,6 +28,11 @@ def run():
     cmd = sys.argv[1]
 
     try:
+        if cmd in ("/d", "d"):
+            data = run_compact(sys.argv[2:])
+            _print_json(data)
+            return
+
         if cmd == "auth":
             scope = sys.argv[2] if len(sys.argv) > 2 else "repo"
             device_flow_auth(scope=scope)

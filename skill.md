@@ -1,95 +1,62 @@
-﻿# Devloop Skill (Coding Agent)
+﻿# Devloop Skill (Compact Protocol)
 
-This skill runs a **passive capture system** that turns natural language into GitHub issues.
-It does **not** require explicit `/devloop` commands unless you want to toggle mode.
+This skill uses a **compact protocol** to minimize tokens between the user, agent, CLI, and GitHub.
 
-## Mode
-- `/devloop on` → enable passive capture
-- `/devloop off` → disable passive capture
+## Global launcher (installed)
+Launcher files:
+- `C:\Users\Lenovo\.local\bin\devloop.cmd`
+- `C:\Users\Lenovo\.local\bin\devloop.ps1`
 
-When mode is ON, the agent detects intent and asks for confirmation before creating an issue.
+How it resolves:
+1) If `DEVLOOP_HOME` is set, it runs `python %DEVLOOP_HOME%\cli.py ...`
+2) Otherwise, it walks up from the current directory until it finds `cli.py`
 
-## Intent detection (trigger phrases)
-Auto-create suggestions when the user says phrases like:
-- "this is a bug"
-- "this needs to be fixed"
-- "track this"
-- "we should build this"
-- "add this to roadmap"
-- "this broke"
-- "crash"
-- "doesn't work"
-- "investigate"
-- "refactor"
-- "create an issue for this in github"
-- "create an issue"
-- "remember this issue"
-
-## Classification
-Detected types:
-- `bug`
-- `feature`
-- `task`
-- `research`
-
-Title format:
-- `[BUG] ...`, `[FEATURE] ...`, `[TASK] ...`, `[RESEARCH] ...`
-
-## Issue template
-Body is deterministic:
-
+Example (from any folder):
 ```
-## Context
-<what is happening / requested>
-
-## Expected
-<what should happen>
-
-## Scope
-<what part of system>
-
-## Acceptance Criteria
-- [ ] Condition 1
-- [ ] Condition 2
+devloop /d c k:b t:"login fail" b:"c:token expires|e:refresh works"
 ```
 
-## Repo handling
-- The first time a repo is needed, ask for `owner/name`.
-- Store it as the active repo and reuse it for future issues.
-- The user can override by explicitly providing a repo slug.
-
-## Execution
-When the user confirms, the agent runs:
-
-```
-python cli.py create <owner/name> "[TYPE] Title" "<templated body>"
-```
-
-## Examples
-Mode ON:
-- User: `/devloop on`
-- Agent: "Devloop mode enabled. I'll suggest issues automatically."
-
-Auto-detection:
-- User: "this is a bug: token refresh fails"
-- Agent: "Detected bug. Create issue?"
-- User: "yes"
-- Agent runs: `python cli.py create owner/name "[BUG] token refresh fails" "<templated body>"`
+## Core Commands (Ultra-Compressed)
+Create:
+- `/d c t:"..." b:"..." k:b`
 
 List:
-- User: "/devloop show me what issue does this repo have"
-- Agent runs: `python cli.py list owner/name`
+- `/d l`
 
 Get:
-- User: "pull up issue #1 for owner/name"
-- Agent runs: `python cli.py get owner/name 1`
+- `/d g 12`
 
-Mode and repo management:
-- `python cli.py mode on`
-- `python cli.py mode off`
-- `python cli.py repo set owner/name`
-- `python cli.py repo get`
+Edit:
+- `/d e 12 t:"..." b:"..." s:d`
 
-Bridge usage (for integrators):
-- Preview detection: `python bridge.py "this is a bug: token refresh fails"`
-- Create after confirm: `python bridge.py "this is a bug: token refresh fails" --confirm --repo owner/name`
+## Field Keys
+- `t:` title
+- `b:` body (compact schema allowed)
+- `k:` kind/type (`b` bug, `f` feature, `t` task, `r` research)
+- `s:` state (`o` open, `p` in_progress, `d` done)
+- `r:` repo override (`owner/name`)
+
+## Defaults
+- Repo: uses active repo from state (`devloop repo set owner/name`)
+- Kind: task
+- State: open
+
+## Compact Body Schema
+Use `b:"c:...|e:...|s:...|a:..."` and CLI will expand it into the full issue template.
+
+Keys:
+- `c:` context
+- `e:` expected
+- `s:` scope
+- `a:` acceptance criteria (comma-separated)
+
+Example:
+- `/d c k:b t:"login fail" b:"c:token expires|e:refresh works|a:retry ok,refresh ok"`
+
+## Execution Mapping
+Agent runs:
+- `devloop /d ...`
+
+Examples:
+- User: `/d c k:b t:"login fail" b:"c:token expires|e:refresh works"`
+- Agent: `devloop /d c k:b t:"login fail" b:"c:token expires|e:refresh works"`
