@@ -22,7 +22,7 @@ devloop /d c k=b t="login fail" b="c=token expires;e=refresh works"
 
 ## Core Commands (Ultra-Compressed)
 Create:
-- `/d c t="..." b="..." k=b`
+- `/d c t="..." b="..." k=b tag=TAG`
 
 List:
 - `/d l`
@@ -31,13 +31,14 @@ Get:
 - `/d g 12`
 
 Edit:
-- `/d e 12 t="..." b="..." s=d`
+- `/d e 12 t="..." b="..." s=d tag=TAG`
 
 ## Field Keys
 - `t` title
 - `b` body (compact schema allowed)
 - `k` kind/type (`b` bug, `f` feature, `t` task, `r` research)
 - `s` state (`o` open, `p` in_progress, `d` done)
+- `tag` title tag (adds `[TAG]` prefix)
 - `r` repo override (`owner/name`)
 
 ## Defaults

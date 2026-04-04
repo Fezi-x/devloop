@@ -35,6 +35,7 @@ class CompactCommand:
         self.body = None
         self.kind = None
         self.state = None
+        self.tag = None
 
 
 def _is_repo(token: str):
@@ -92,6 +93,8 @@ def parse_compact(tokens):
             cmd.kind = value
         elif key in ("s", "state"):
             cmd.state = value
+        elif key in ("tag",):
+            cmd.tag = value
         elif key in ("i", "issue"):
             if value.isdigit():
                 cmd.issue = int(value)
@@ -116,6 +119,16 @@ def _apply_kind_prefix(kind: str, title: str):
         return title
     kind = _KIND_MAP.get((kind or "").lower(), "task")
     return build_issue_title(kind, title)
+
+
+def _apply_tag_prefix(tag: str, title: str):
+    if not tag or not title:
+        return title
+    trimmed = title.strip()
+    expected = f"[{tag}]"
+    if trimmed.lower().startswith(expected.lower()):
+        return title
+    return f"{expected} {title}"
 
 
 def _looks_compact(body: str):
@@ -148,6 +161,7 @@ def run_compact(tokens):
         if not cmd.title:
             raise_error("bad_request", "Missing title. Use t:<title> or t=<title>.")
         title = _apply_kind_prefix(cmd.kind, cmd.title)
+        title = _apply_tag_prefix(cmd.tag, title)
         body = _expand_body(cmd.body) if cmd.body else None
         if body and body.startswith("## Context") is False and _looks_compact(cmd.body or ""):
             body = build_issue_body(cmd.body)
@@ -156,7 +170,10 @@ def run_compact(tokens):
     if cmd.action == "edit":
         if cmd.issue is None:
             raise_error("bad_request", "Missing issue number.")
+        if cmd.tag and not cmd.title:
+            raise_error("bad_request", "Tag requires a title when editing.")
         title = _apply_kind_prefix(cmd.kind, cmd.title) if cmd.title else None
+        title = _apply_tag_prefix(cmd.tag, title)
         body = _expand_body(cmd.body) if cmd.body else None
         state = cmd.state
         if state:

@@ -21,6 +21,39 @@ def _clean(value):
     return value
 
 
+def _extract_tag(args):
+    if not args:
+        return None, []
+    tag = None
+    remaining = []
+    i = 0
+    while i < len(args):
+        token = args[i]
+        if token.startswith("--tag="):
+            tag = token.split("=", 1)[1].strip()
+        elif token == "--tag":
+            if i + 1 >= len(args):
+                raise DevloopError("bad_request", "Missing value for --tag.")
+            tag = args[i + 1].strip()
+            i += 1
+        else:
+            remaining.append(token)
+        i += 1
+    if tag == "":
+        tag = None
+    return tag, remaining
+
+
+def _apply_tag_prefix(tag, title):
+    if not tag or not title:
+        return title
+    trimmed = title.strip()
+    expected = f"[{tag}]"
+    if trimmed.lower().startswith(expected.lower()):
+        return title
+    return f"{expected} {title}"
+
+
 def run():
     if len(sys.argv) < 2:
         exit_with_error(DevloopError("bad_request", "Missing command."))
@@ -41,20 +74,24 @@ def run():
 
         if cmd == "create":
             if len(sys.argv) < 4:
-                raise DevloopError("bad_request", "Usage: create <owner/name> <title> [body]")
+                raise DevloopError("bad_request", "Usage: create <owner/name> <title> [body] [--tag TAG]")
             repo = sys.argv[2]
-            title = sys.argv[3]
-            body = sys.argv[4] if len(sys.argv) > 4 else None
+            tag, remaining = _extract_tag(sys.argv[3:])
+            if not remaining:
+                raise DevloopError("bad_request", "Missing title. Usage: create <owner/name> <title> [body]")
+            title = remaining[0]
+            body = remaining[1] if len(remaining) > 1 else None
+            title = _apply_tag_prefix(tag, title)
             data = create_issue(repo, title, body)
             _print_json(data)
             return
 
         if cmd == "edit":
             if len(sys.argv) < 4:
-                raise DevloopError("bad_request", "Usage: edit <owner/name> <number> [title] [body] [state]")
+                raise DevloopError("bad_request", "Usage: edit <owner/name> <number> [title] [body] [state] [--tag TAG]")
             repo = sys.argv[2]
             number = int(sys.argv[3])
-            remaining = sys.argv[4:]
+            tag, remaining = _extract_tag(sys.argv[4:])
 
             title = None
             body = None
@@ -69,6 +106,9 @@ def run():
                     body = _clean(remaining[1])
                 if len(remaining) >= 3:
                     state = _clean(remaining[2])
+            if tag and not title:
+                raise DevloopError("bad_request", "Tag requires a title when editing.")
+            title = _apply_tag_prefix(tag, title)
 
             data = edit_issue(repo, number, title=title, body=body, state=state)
             _print_json(data)
