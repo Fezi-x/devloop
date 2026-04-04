@@ -1,0 +1,7 @@
+﻿# Devloop
+.env
+/token.json
+__pycache__/
+*.pyc
+.venv/
+venv/
