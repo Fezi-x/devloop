@@ -16,6 +16,17 @@ _STATE_MAP = {
     "closed": "closed",
 }
 
+_KIND_MAP = {
+    "b": "bug",
+    "bug": "bug",
+    "f": "feature",
+    "feature": "feature",
+    "t": "task",
+    "task": "task",
+    "r": "research",
+    "research": "research",
+}
+
 
 class CompactCommand:
     def __init__(self):
@@ -33,9 +44,12 @@ def _is_repo(token: str):
 
 
 def _parse_kv(token: str):
-    if ":" not in token:
+    if ":" in token:
+        key, value = token.split(":", 1)
+    elif "=" in token:
+        key, value = token.split("=", 1)
+    else:
         return None, None
-    key, value = token.split(":", 1)
     key = key.strip().lower()
     value = value.strip()
     return key, value
@@ -102,15 +116,20 @@ def _apply_kind_prefix(kind: str, title: str):
         return title
     if title.strip().startswith("["):
         return title
-    if not kind:
-        kind = "task"
+    kind = _KIND_MAP.get((kind or "").lower(), "task")
     return build_issue_title(kind, title)
+
+
+def _looks_compact(body: str):
+    if not body:
+        return False
+    return ("|" in body or ";" in body) and (":" in body or "=" in body)
 
 
 def _expand_body(body: str):
     if not body:
         return body
-    if "|" in body and ":" in body:
+    if _looks_compact(body):
         return expand_compact_body(body)
     return body
 
@@ -129,10 +148,10 @@ def run_compact(tokens):
 
     if cmd.action == "create":
         if not cmd.title:
-            raise_error("bad_request", "Missing title. Use t:<title>.")
+            raise_error("bad_request", "Missing title. Use t:<title> or t=<title>.")
         title = _apply_kind_prefix(cmd.kind, cmd.title)
         body = _expand_body(cmd.body) if cmd.body else None
-        if body and body.startswith("## Context") is False and "|" in (cmd.body or ""):
+        if body and body.startswith("## Context") is False and _looks_compact(cmd.body or ""):
             body = build_issue_body(cmd.body)
         return create_issue(repo, title, body)
 

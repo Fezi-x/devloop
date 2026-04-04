@@ -25,16 +25,27 @@ def build_issue_body(context: str, expected: str = "", scope: str = "", acceptan
     return "\n".join(lines).strip()
 
 
+def _split_kv(part: str):
+    if ":" in part:
+        return part.split(":", 1)
+    if "=" in part:
+        return part.split("=", 1)
+    return None, None
+
+
 def expand_compact_body(compact: str):
-    parts = [p for p in compact.split("|") if p]
+    raw_parts = []
+    for chunk in compact.split(";"):
+        raw_parts.extend(chunk.split("|"))
+    parts = [p for p in raw_parts if p]
     context = ""
     expected = ""
     scope = ""
     acceptance = []
     for part in parts:
-        if ":" not in part:
+        key, value = _split_kv(part)
+        if not key:
             continue
-        key, value = part.split(":", 1)
         key = key.strip().lower()
         value = value.strip()
         if key in ("c", "ctx", "context"):
