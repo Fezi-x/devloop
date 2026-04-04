@@ -1,6 +1,4 @@
-﻿import re
-
-from errors import DevloopError, raise_error
+﻿from errors import raise_error
 from issue_template import build_issue_body, build_issue_title, expand_compact_body
 from issues import create_issue, edit_issue, get_issue, list_issues
 from state import get_active_repo, set_active_repo
@@ -166,3 +164,4 @@ def run_compact(tokens):
         return edit_issue(repo, cmd.issue, title=title, body=body, state=state)
 
     raise_error("bad_request", "Unsupported compact action.")
+
