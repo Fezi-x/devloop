@@ -73,12 +73,41 @@ exit 1
 Set-Content -Encoding ASCII -Path $devloopCmd -Value $cmdContent
 Set-Content -Encoding UTF8 -Path $devloopPs1 -Value $ps1Content
 
-$skillDir = Join-Path $env:USERPROFILE ".codex\skills\devloop"
-if (-not (Test-Path $skillDir)) {
-  New-Item -ItemType Directory -Path $skillDir | Out-Null
+$skillsRoot = if ($env:CODEX_HOME) { Join-Path $env:CODEX_HOME "skills" } else { Join-Path $env:USERPROFILE ".codex\skills" }
+$skillName = "devloop"
+$skillDir = Join-Path $skillsRoot $skillName
+
+if (-not (Test-Path $skillsRoot)) {
+  New-Item -ItemType Directory -Path $skillsRoot | Out-Null
 }
-Copy-Item -Force $skillSource (Join-Path $skillDir "skill.md")
+
+if (-not (Test-Path $skillDir)) {
+  $initSkill = "C:\Users\Lenovo\.codex\skills\.system\skill-creator\scripts\init_skill.py"
+  python $initSkill $skillName --path $skillsRoot
+}
+
+$skillBody = Get-Content -Raw -LiteralPath $skillSource
+$skillFrontmatter = @"
+---
+name: devloop
+description: Compact Devloop issue protocol and CLI launcher usage for creating, listing, getting, and editing GitHub issues via the devloop tool; use when interacting with devloop or its compact `/d` commands.
+---
+
+"@
+$skillContent = $skillFrontmatter + $skillBody
+$skillPath = Join-Path $skillDir "SKILL.md"
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($skillPath, $skillContent, $utf8NoBom)
+
+$genYaml = "C:\Users\Lenovo\.codex\skills\.system\skill-creator\scripts\generate_openai_yaml.py"
+python $genYaml $skillDir `
+  --interface display_name="Devloop" `
+  --interface short_description="Run the Devloop compact issue workflow" `
+  --interface default_prompt="Enter devloop mode: use the compact /d commands and map them to devloop CLI calls."
+
+$validateSkill = "C:\Users\Lenovo\.codex\skills\.system\skill-creator\scripts\quick_validate.py"
+python $validateSkill $skillDir
 
 Write-Output "Installed devloop launcher to: $devloopCmd"
 Write-Output "Installed devloop PowerShell launcher to: $devloopPs1"
-Write-Output "Installed Codex skill to: $skillDir\skill.md"
+Write-Output "Installed Codex skill to: $skillDir\SKILL.md"
