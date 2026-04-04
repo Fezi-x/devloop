@@ -108,6 +108,13 @@ python $genYaml $skillDir `
 $validateSkill = "C:\Users\Lenovo\.codex\skills\.system\skill-creator\scripts\quick_validate.py"
 python $validateSkill $skillDir
 
+if (-not (Test-Path (Join-Path $repoRoot "token.json"))) {
+  Write-Output "Starting GitHub device authorization..."
+  python (Join-Path $repoRoot "auth.py")
+} else {
+  Write-Output "token.json already exists; skipping GitHub authorization."
+}
+
 Write-Output "Installed devloop launcher to: $devloopCmd"
 Write-Output "Installed devloop PowerShell launcher to: $devloopPs1"
 Write-Output "Installed Codex skill to: $skillDir\SKILL.md"

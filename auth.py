@@ -1,6 +1,7 @@
 ﻿import json
 import os
 import time
+import webbrowser
 import requests
 
 from config import load_env
@@ -61,6 +62,13 @@ def device_flow_auth(scope: str = DEFAULT_SCOPE, poll_interval: int = None):
             indent=2,
         )
     )
+    try:
+        if verification_uri_complete:
+            webbrowser.open(verification_uri_complete, new=2)
+        else:
+            webbrowser.open(verification_uri, new=2)
+    except Exception:
+        pass
 
     start = time.time()
     while True:
@@ -101,3 +109,12 @@ def device_flow_auth(scope: str = DEFAULT_SCOPE, poll_interval: int = None):
             raise_error("oauth_expired", "Device code expired.")
 
         raise_error("oauth_error", "Unexpected OAuth error.", {"response": token_data})
+
+if __name__ == "__main__":
+    import sys
+
+    scope = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SCOPE
+    device_flow_auth(scope=scope)
+    print(json.dumps({"status": "ok", "token_saved": True}, indent=2))
+
+
