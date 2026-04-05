@@ -3,6 +3,7 @@ from issue_template import build_issue_body, build_issue_title, expand_compact_b
 from issues import create_issue, edit_issue, get_issue, list_issues
 from state import get_active_repo, set_active_repo
 
+
 _STATE_MAP = {
     "o": "open",
     "open": "open",
@@ -49,9 +50,7 @@ def _parse_kv(token: str):
         key, value = token.split("=", 1)
     else:
         return None, None
-    key = key.strip().lower()
-    value = value.strip()
-    return key, value
+    return key.strip().lower(), value.strip()
 
 
 def parse_compact(tokens):
@@ -59,6 +58,7 @@ def parse_compact(tokens):
         raise_error("bad_request", "Missing compact command.")
 
     cmd = CompactCommand()
+
     action = tokens[0].lower()
     if action in ("c", "create"):
         cmd.action = "create"
@@ -75,6 +75,7 @@ def parse_compact(tokens):
         if token.isdigit() and cmd.issue is None:
             cmd.issue = int(token)
             continue
+
         if _is_repo(token) and cmd.repo is None:
             cmd.repo = token
             continue
@@ -93,11 +94,10 @@ def parse_compact(tokens):
             cmd.kind = value
         elif key in ("s", "state"):
             cmd.state = value
-        elif key in ("tag",):
+        elif key == "tag":
             cmd.tag = value
-        elif key in ("i", "issue"):
-            if value.isdigit():
-                cmd.issue = int(value)
+        elif key in ("i", "issue") and value.isdigit():
+            cmd.issue = int(value)
 
     return cmd
 
@@ -106,6 +106,7 @@ def _resolve_repo(cmd: CompactCommand):
     if cmd.repo:
         set_active_repo(cmd.repo)
         return cmd.repo
+
     repo = get_active_repo()
     if not repo:
         raise_error("config_missing", "Active repo not set. Provide r:<owner/name>.")
@@ -137,11 +138,24 @@ def _looks_compact(body: str):
     return ("|" in body or ";" in body) and (":" in body or "=" in body)
 
 
-def _expand_body(body: str):
+def _normalize_body(body: str):
+    """
+    Deterministic pipeline:
+    - Detect compact
+    - Expand
+    - Template
+    - Return final markdown body
+    """
     if not body:
         return body
+
     if _looks_compact(body):
-        return expand_compact_body(body)
+        try:
+            expanded = expand_compact_body(body)
+            return build_issue_body(expanded)
+        except Exception:
+            raise_error("bad_request", "Invalid compact body format.")
+
     return body
 
 
@@ -149,36 +163,51 @@ def run_compact(tokens):
     cmd = parse_compact(tokens)
     repo = _resolve_repo(cmd)
 
+    # LIST
     if cmd.action == "list":
         return list_issues(repo)
 
+    # GET
     if cmd.action == "get":
         if cmd.issue is None:
             raise_error("bad_request", "Missing issue number.")
         return get_issue(repo, cmd.issue)
 
+    # CREATE
     if cmd.action == "create":
         if not cmd.title:
             raise_error("bad_request", "Missing title. Use t:<title> or t=<title>.")
+
         title = _apply_kind_prefix(cmd.kind, cmd.title)
         title = _apply_tag_prefix(cmd.tag, title)
-        body = _expand_body(cmd.body) if cmd.body else None
-        if body and body.startswith("## Context") is False and _looks_compact(cmd.body or ""):
-            body = build_issue_body(cmd.body)
+
+        body = _normalize_body(cmd.body) if cmd.body else None
+
         return create_issue(repo, title, body)
 
+    # EDIT
     if cmd.action == "edit":
         if cmd.issue is None:
             raise_error("bad_request", "Missing issue number.")
+
         if cmd.tag and not cmd.title:
             raise_error("bad_request", "Tag requires a title when editing.")
+
         title = _apply_kind_prefix(cmd.kind, cmd.title) if cmd.title else None
         title = _apply_tag_prefix(cmd.tag, title)
-        body = _expand_body(cmd.body) if cmd.body else None
+
+        body = _normalize_body(cmd.body) if cmd.body else None
+
         state = cmd.state
         if state:
             state = _STATE_MAP.get(state, state)
-        return edit_issue(repo, cmd.issue, title=title, body=body, state=state)
+
+        return edit_issue(
+            repo,
+            cmd.issue,
+            title=title,
+            body=body,
+            state=state,
+        )
 
     raise_error("bad_request", "Unsupported compact action.")
-
