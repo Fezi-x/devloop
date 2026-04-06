@@ -11,6 +11,31 @@ if (-not (Test-Path $skillSource)) {
   exit 1
 }
 
+# Ensure DEVLOOP_HOME is set for future sessions and current session.
+if (-not $DevloopHome) {
+  $DevloopHome = $repoRoot
+}
+$env:DEVLOOP_HOME = $DevloopHome
+try {
+  setx DEVLOOP_HOME $DevloopHome | Out-Null
+} catch {
+  Write-Warning "Failed to persist DEVLOOP_HOME with setx. You can set it manually to: $DevloopHome"
+}
+
+# Ensure DEVLOOP_CONFIG is set for global config (.env, token, state).
+if (-not $env:DEVLOOP_CONFIG) {
+  $env:DEVLOOP_CONFIG = Join-Path $env:USERPROFILE ".devloop"
+}
+try {
+  setx DEVLOOP_CONFIG $env:DEVLOOP_CONFIG | Out-Null
+} catch {
+  Write-Warning "Failed to persist DEVLOOP_CONFIG with setx. You can set it manually to: $env:DEVLOOP_CONFIG"
+}
+
+if (-not (Test-Path $env:DEVLOOP_CONFIG)) {
+  New-Item -ItemType Directory -Path $env:DEVLOOP_CONFIG | Out-Null
+}
+
 $binDir = Join-Path $env:USERPROFILE ".local\bin"
 if (-not (Test-Path $binDir)) {
   New-Item -ItemType Directory -Path $binDir | Out-Null
@@ -108,7 +133,20 @@ python $genYaml $skillDir `
 $validateSkill = "C:\Users\Lenovo\.codex\skills\.system\skill-creator\scripts\quick_validate.py"
 python $validateSkill $skillDir
 
-if (-not (Test-Path (Join-Path $repoRoot "token.json"))) {
+# Migrate existing local config to global config (one-time best effort).
+$localEnv = Join-Path $repoRoot ".env"
+$globalEnv = Join-Path $env:DEVLOOP_CONFIG ".env"
+if ((Test-Path $localEnv) -and (-not (Test-Path $globalEnv))) {
+  Copy-Item -LiteralPath $localEnv -Destination $globalEnv
+}
+
+$localToken = Join-Path $repoRoot "token.json"
+$globalToken = Join-Path $env:DEVLOOP_CONFIG "token.json"
+if ((Test-Path $localToken) -and (-not (Test-Path $globalToken))) {
+  Copy-Item -LiteralPath $localToken -Destination $globalToken
+}
+
+if (-not (Test-Path $globalToken)) {
   Write-Output "Starting GitHub device authorization..."
   python (Join-Path $repoRoot "auth.py")
 } else {

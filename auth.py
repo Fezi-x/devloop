@@ -4,10 +4,8 @@ import time
 import webbrowser
 import requests
 
-from config import load_env
+from config import ensure_config_dir, get_token_path, load_env
 from errors import raise_error
-
-TOKEN_PATH = "token.json"
 GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
 GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
 DEFAULT_SCOPE = "repo"
@@ -91,7 +89,9 @@ def device_flow_auth(scope: str = DEFAULT_SCOPE, poll_interval: int = None):
         token_data = token_resp.json()
         if "access_token" in token_data:
             token = token_data["access_token"]
-            with open(TOKEN_PATH, "w", encoding="utf-8") as f:
+            token_path = get_token_path()
+            ensure_config_dir()
+            with open(token_path, "w", encoding="utf-8") as f:
                 json.dump({"access_token": token}, f, indent=2)
             return {"access_token": token}
 

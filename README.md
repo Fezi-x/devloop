@@ -15,11 +15,16 @@ Devloop keeps a simple loop between your coding agent and GitHub Issues. I built
 
 ## Installation
 1. Clone this repo.
-2. Copy `.env.example` to `.env` and set your OAuth client id:
+2. Copy `.env.example` to the **global config** and set your OAuth client id:
+
+- Windows: `%USERPROFILE%\.devloop\.env`
+- macOS/Linux: `~/.devloop/.env`
 
 ```
 GITHUB_CLIENT_ID=your_oauth_client_id
 ```
+
+You can override the config directory with `DEVLOOP_CONFIG` (token and env only). Repo state remains local in `state.json`.
 
 3. Run the one-click installer (Windows PowerShell):
 
