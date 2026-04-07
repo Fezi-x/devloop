@@ -3,7 +3,6 @@ import os
 
 from errors import raise_error
 
-ENV_PATH = ".env"
 _ENV_LOADED = False
 
 
@@ -28,7 +27,6 @@ def ensure_config_dir():
 def _env_paths():
     return [
         os.path.join(get_config_dir(), ".env"),
-        ENV_PATH,
     ]
 
 
@@ -79,7 +77,7 @@ def get_token_path():
 
 
 def get_state_path():
-    return os.path.join(get_config_dir(), "state.json")
+    return "state.json"
 
 
 def get_token(path: str = None):

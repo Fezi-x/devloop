@@ -22,7 +22,7 @@ try {
   Write-Warning "Failed to persist DEVLOOP_HOME with setx. You can set it manually to: $DevloopHome"
 }
 
-# Ensure DEVLOOP_CONFIG is set for global config (.env, token, state).
+# Ensure DEVLOOP_CONFIG is set for global config (.env, token).
 if (-not $env:DEVLOOP_CONFIG) {
   $env:DEVLOOP_CONFIG = Join-Path $env:USERPROFILE ".devloop"
 }

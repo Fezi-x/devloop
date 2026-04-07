@@ -1,7 +1,7 @@
 ﻿from errors import raise_error
 from issue_template import build_issue_body, build_issue_title, expand_compact_body
 from issues import create_issue, edit_issue, get_issue, list_issues
-from state import get_active_repo, set_active_repo
+from state import get_active_repo
 
 
 _STATE_MAP = {
@@ -104,7 +104,6 @@ def parse_compact(tokens):
 
 def _resolve_repo(cmd: CompactCommand):
     if cmd.repo:
-        set_active_repo(cmd.repo)
         return cmd.repo
 
     repo = get_active_repo()
